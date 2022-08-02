@@ -1,0 +1,45 @@
+from rest_framework import serializers
+from .models import User
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Сериализатор пользователей, модели User. """
+
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'email', 'username',
+            'first_name', 'last_name',
+            'password', 'is_subscribed'
+        )
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = super().create(validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+
+
+class ObtainTokenSerializer(serializers.ModelSerializer):
+    """Сериализатор для получения токена. """
+
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField()
+
+    class Meta:
+        model = User
+        fields = ('email', 'password')
+
+
+class NewPasswordSerializer(serializers.ModelSerializer):
+    """Сериализатор для изменения пароля. """
+
+    new_password = serializers.CharField()
+    current_password = serializers.CharField()
+
+    class Meta:
+        model = User
+        fields = ('new_password', 'current_password')
