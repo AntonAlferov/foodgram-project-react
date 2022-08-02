@@ -15,12 +15,12 @@ class CountIngredientSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор Рецептов"""
 
-    ingredients = CountIngredientSerializer(source='recipe',many=True,)
+    ingredients = CountIngredientSerializer(many=True,)
 
     class Meta:
         model = Recipe
         fields = ('name', 'text', 'cooking_time', 'author', 'ingredients')
-        depth = 1
+        read_only_fields = ['author', ]
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')
