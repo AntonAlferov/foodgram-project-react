@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from .models import Recipe, Ingredient
-from .serializers import RecipeSerializer, IngredientSerializer, RecipeSerializer2
+from .serializers import RecipeSerializer, IngredientSerializer
 from rest_framework import permissions
 from rest_framework import filters
 
