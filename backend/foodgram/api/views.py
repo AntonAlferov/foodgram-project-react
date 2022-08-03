@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from .models import Recipe, Ingredient
-from .serializers import RecipeSerializer, IngredientSerializer
+from .serializers import RecipeSerializer, IngredientSerializer, RecipeSerializer2
 from rest_framework import permissions
 from rest_framework import filters
 
@@ -18,8 +18,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
 #        serializer.save(author=self.request.user)
 #    def get_serializer_class(self):
 #        if self.action in ['list', 'retrieve']:
-#            return RecipeSerializer2
-#        return RecipeSerializer
+ #           return RecipeSerializer2
+ #       return RecipeSerializer
 
 
 

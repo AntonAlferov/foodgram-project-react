@@ -26,7 +26,7 @@ class CountIngredient(models.Model):
     ingredient = models.ForeignKey(
         'Ingredient',
         on_delete=models.CASCADE,
-        related_name='amount',
+        related_name='Ingredient_count',
         verbose_name='Ингредиенты',
     )
     amount = models.IntegerField(
@@ -41,6 +41,7 @@ class Ingredient(models.Model):
     measurement_unit = models.CharField(
         'Единица измерения', max_length=16,)
 
+
 class Recipe(models.Model):
     """Модель рецептов"""
 
@@ -48,6 +49,7 @@ class Recipe(models.Model):
         'Ingredient',
         related_name='Recipe_Ingredient',
         through='CountIngredient',
+        through_fields=('recipe', 'ingredient'),
         verbose_name='Список ингредиентов'
     )
     name = models.CharField('Название', max_length=200,)

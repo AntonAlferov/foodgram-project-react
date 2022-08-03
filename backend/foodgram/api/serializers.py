@@ -1,21 +1,19 @@
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from .models import Recipe, Ingredient, CountIngredient
 
 
 class CountIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор колличества ингедиентов в рецепте"""
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
         model = CountIngredient
-        fields = ('id', 'amount',)
-        read_only_fields = ['recipe', ]
+        fields = ('ingredient', 'amount')
+
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор Рецептов"""
 
-    ingredients = CountIngredientSerializer(many=True,)
+    ingredients = CountIngredientSerializer(source='countingredient_set', many=True)
 
     class Meta:
         model = Recipe
@@ -23,13 +21,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['author', ]
 
     def create(self, validated_data):
-        ingredients_data = validated_data.pop('ingredients')
+        ingredients_data = validated_data.pop('countingredient_set')
         recipe = Recipe.objects.create(author=self.context.get('request').user, **validated_data)
         for ingredient in ingredients_data:
             CountIngredient.objects.get_or_create(
-                recipe=recipe,
-                ingredient=ingredient.get('id'),
-                amount=ingredient.get('amount')
+                recipe=recipe,**ingredient
             )
         return recipe
 
