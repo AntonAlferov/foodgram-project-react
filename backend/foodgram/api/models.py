@@ -22,6 +22,12 @@ class Follow(models.Model):
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user_follower', 'author_following'],
+                name='unique_follower_following',
+            ),
+        ]
 
 
 class CountIngredient(models.Model):
@@ -44,6 +50,12 @@ class CountIngredient(models.Model):
     class Meta:
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецепте'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'ingredient'],
+                name='unique_recipe_ingredient',
+            ),
+        ]
 
 
 class Ingredient(models.Model):
@@ -105,8 +117,8 @@ class Recipe(models.Model):
 
 class Tag(models.Model):
     """Модель тегов"""
-    name = models.CharField(max_length=200,)
-    color = models.CharField(max_length=7,)
+    name = models.CharField('Имя', max_length=200,)
+    color = models.CharField('Цвет', max_length=7,)
     slug = models.SlugField(
         max_length=100,
         unique=True,
@@ -129,7 +141,7 @@ class Favorited(models.Model):
         related_name='FavoritedUser',
         verbose_name='Имя пользователя'
     )
-    is_favorited = models.ForeignKey(
+    favorite = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         related_name='FavoritedIsRecipe',
@@ -139,10 +151,16 @@ class Favorited(models.Model):
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'favorite'],
+                name='unique_user_favorite',
+            ),
+        ]
 
     def __str__(self) -> str:
         return (
-            f'"{self.is_favorited.name}"'
+            f'"{self.favorite.name}"'
             'в избранном у "{self.user.username}"'
         )
 
@@ -154,7 +172,7 @@ class ShoppingCart(models.Model):
         related_name='ShoppingCartUser',
         verbose_name='Имя пользователя'
     )
-    is_in_shopping_cart = models.ForeignKey(
+    shopping_cart = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         related_name='ShoppingCartRecipe',
@@ -164,6 +182,12 @@ class ShoppingCart(models.Model):
     class Meta:
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'shopping_cart'],
+                name='unique_user_shopping_cart',
+            ),
+        ]
 
     def __str__(self) -> str:
         return (

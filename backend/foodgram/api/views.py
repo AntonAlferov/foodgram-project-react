@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .filters import FilterRecipe
+from .permissions import WriteOnlyAuthorOr
 from .models import (CountIngredient, Favorited, Follow, Ingredient, Recipe,
                      ShoppingCart, Tag, User)
 from .serializers import (CreateRecipeSerializer, FavoritedRecipeSerializer,
@@ -22,7 +23,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     queryset = Recipe.objects.all()
     pagination_class = LimitOffsetPagination
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated, WriteOnlyAuthorOr)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = FilterRecipe
 

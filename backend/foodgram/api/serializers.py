@@ -72,19 +72,19 @@ class TagsSerializer(serializers.ModelSerializer):
 class ListRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор Рецептов при просмотре"""
 
-    is_favorited = serializers.SerializerMethodField()
+    is_favorite = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
-    def get_is_favorited(self, obj):
+    def get_is_favorite(self, obj):
         if Favorited.objects.filter(
-            user=self.context.get('request').user, is_favorited=obj
+            user=self.context.get('request').user, favorite=obj
         ).exists():
             return True
         return False
 
     def get_is_in_shopping_cart(self, obj):
         if ShoppingCart.objects.filter(
-            user=self.context.get('request').user, is_in_shopping_cart=obj
+            user=self.context.get('request').user, shopping_cart=obj
         ).exists():
             return True
         return False
@@ -98,7 +98,7 @@ class ListRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'tags', 'author', 'ingredients', 'name', 'is_favorited',
+            'id', 'tags', 'author', 'ingredients', 'name', 'is_favorite',
             'is_in_shopping_cart', 'image', 'text', 'cooking_time'
         )
         read_only_fields = ['author', ]
@@ -113,16 +113,16 @@ class FavoritedRecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'name', 'cooking_time']
 
     def create(self, validated_data):
-        is_favorited = self.context['view'].kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=is_favorited)
+        favorite = self.context['view'].kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=favorite)
         if Favorited.objects.filter(
-            user=self.context.get('request').user, is_favorited=recipe
+            user=self.context.get('request').user, favorite=recipe
         ).exists():
             raise serializers.ValidationError(
                 'Рецепт уже есть в избранном'
             )
         Favorited.objects.create(
-            user=self.context.get('request').user, is_favorited=recipe
+            user=self.context.get('request').user, favorite=recipe
         )
         return recipe
 
@@ -136,16 +136,16 @@ class ShoppingCartRecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'name', 'cooking_time']
 
     def create(self, validated_data):
-        is_in_shopping_cart = self.context['view'].kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=is_in_shopping_cart)
+        shopping_cart = self.context['view'].kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=shopping_cart)
         if ShoppingCart.objects.filter(
-            user=self.context.get('request').user, is_in_shopping_cart=recipe
+            user=self.context.get('request').user, shopping_cart=recipe
         ).exists():
             raise serializers.ValidationError(
                 'Рецепт уже есть в корзине'
             )
         ShoppingCart.objects.create(
-            user=self.context.get('request').user, is_in_shopping_cart=recipe
+            user=self.context.get('request').user, shopping_cart=recipe
         )
         return recipe
 
