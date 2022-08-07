@@ -1,16 +1,16 @@
-from rest_framework.pagination import PageNumberPagination
+from django.contrib.auth import logout
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
-from .models import User
-from .serializers import (
-    UserSerializer, ObtainTokenSerializer, NewPasswordSerializer
-)
+from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import logout
-from django.shortcuts import get_object_or_404
+
+from .models import User
+from .serializers import (NewPasswordSerializer, ObtainTokenSerializer,
+                          UserMeSerializer, UserSerializer)
 
 
 class UsersViewSet(viewsets.ModelViewSet):
@@ -19,7 +19,7 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     @action(
         methods=['get', ],
@@ -28,7 +28,7 @@ class UsersViewSet(viewsets.ModelViewSet):
         url_path='me',
     )
     def get_account_information(self, request):
-        serializer = UserSerializer(self.request.user)
+        serializer = UserMeSerializer(self.request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
@@ -42,7 +42,7 @@ class UsersViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         if request.user.check_password(
             serializer.validated_data['current_password']
-            ):
+        ):
             user = get_object_or_404(User, id=request.user.id)
             user.set_password(serializer.validated_data['new_password'])
             user.save()

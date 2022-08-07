@@ -1,26 +1,35 @@
-from rest_framework import viewsets
+from django.db.models import Sum
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import (filters, mixins, permissions, serializers, status,
+                            viewsets)
 from rest_framework.pagination import LimitOffsetPagination
-from .models import Recipe, Ingredient
-from .serializers import RecipeSerializer, IngredientSerializer
-from rest_framework import permissions
-from rest_framework import filters
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .filters import FilterRecipe
+from .models import (CountIngredient, Favorited, Follow, Ingredient, Recipe,
+                     ShoppingCart, Tag, User)
+from .serializers import (CreateRecipeSerializer, FavoritedRecipeSerializer,
+                          FollowSerializer, IngredientSerializer,
+                          ListRecipeSerializer, ShoppingCartRecipeSerializer,
+                          TagsSerializer)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """ModelViewSet для обработки эндпоинта /recipes/."""
 
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = (permissions.IsAuthenticated,)
-    
-#    def perform_create(self, serializer):
-#        serializer.save(author=self.request.user)
-#    def get_serializer_class(self):
-#        if self.action in ['list', 'retrieve']:
- #           return RecipeSerializer2
- #       return RecipeSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = FilterRecipe
 
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return ListRecipeSerializer
+        return CreateRecipeSerializer
 
 
 class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
@@ -31,4 +40,130 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = LimitOffsetPagination
     permission_classes = (permissions.AllowAny,)
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    search_fields = ['name']
+
+
+class TagsViewSet(viewsets.ModelViewSet):
+    """ModelViewSet для обработки эндпоинта /tags/."""
+
+    queryset = Tag.objects.all()
+    serializer_class = TagsSerializer
+    pagination_class = LimitOffsetPagination
+    permission_classes = (permissions.IsAuthenticated,)
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+
+
+class FavoritedViewSet(
+        mixins.CreateModelMixin,
+        mixins.DestroyModelMixin,
+        viewsets.GenericViewSet
+        ):
+    """ModelViewSet для обработки эндпоинта /recipes/{recipe_id}/favorite/."""
+
+    queryset = Favorited.objects.all()
+    serializer_class = FavoritedRecipeSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def delete(self, request, *args, **kwargs):
+        recipe_id = self.kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        if not Favorited.objects.filter(
+            user=request.user, is_favorited=recipe
+        ).exists():
+            raise serializers.ValidationError(
+                'Такого рецепта нет в вашем избранном'
+            )
+        Favorited.objects.filter(
+            user=request.user, is_favorited=recipe
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShoppingCartViewSet(
+        mixins.CreateModelMixin,
+        mixins.DestroyModelMixin,
+        viewsets.GenericViewSet
+        ):
+    """
+    ModelViewSet для обработки эндпоинта /recipes/{recipe_id}/shopping_cart/.
+    """
+
+    queryset = ShoppingCart.objects.all()
+    serializer_class = ShoppingCartRecipeSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def delete(self, request, *args, **kwargs):
+        recipe_id = self.kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        if not ShoppingCart.objects.filter(
+            user=request.user, is_in_shopping_cart=recipe
+        ).exists():
+            raise serializers.ValidationError(
+                'Такого рецепта нет в вашей корзине'
+            )
+        ShoppingCart.objects.filter(
+            user=request.user, is_in_shopping_cart=recipe
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class APIDownloadShoppingCart(APIView):
+    """APIView для обработки эндпоинта /recipes/download_shopping_cart/."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        ingredients = CountIngredient.objects.filter(
+            recipe__ShoppingCartRecipe__user=request.user).values(
+            'ingredient__name',
+            'ingredient__measurement_unit').annotate(total=Sum('amount'))
+        shopping_cart = '\n'.join([
+            f'{ingredient["ingredient__name"]}'
+            f'({ingredient["ingredient__measurement_unit"]})'
+            f' -- {ingredient["total"]}'
+            for ingredient in ingredients
+        ])
+        filename = 'shopping_cart.txt'
+        response = HttpResponse(shopping_cart, content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
+
+
+class SubscribeViewSet(
+        mixins.CreateModelMixin,
+        mixins.DestroyModelMixin,
+        viewsets.GenericViewSet
+        ):
+    """ModelViewSet для обработки эндпоинта /users/{recipe_id}/subscribe/."""
+
+    queryset = Follow.objects.all()
+    serializer_class = FollowSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def delete(self, request, *args, **kwargs):
+        user_id = self.kwargs.get('user_id')
+        user = get_object_or_404(User, id=user_id)
+        if not Follow.objects.filter(
+            user_follower=request.user, author_following=user
+        ).exists():
+            raise serializers.ValidationError(
+                'Такого пользователя нет в ваших подписках'
+            )
+        Follow.objects.filter(
+            user_follower=request.user, author_following=user
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class APISubscriptionsUser(viewsets.ModelViewSet):
+    """ModelViewSet для обработки эндпоинта /users/subscriptions/."""
+
+    serializer_class = FollowSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        new_queryset = User.objects.filter(
+            following__user_follower=self.request.user
+        )
+        return new_queryset
