@@ -24,11 +24,12 @@ class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
-        if Follow.objects.filter(
-            user_follower=self.context.get('request').user,
-            author_following=obj
-        ).exists():
-            return True
+        if self.context.get('request').user.is_authenticated:
+            if Follow.objects.filter(
+                user_follower=self.context.get('request').user,
+                author_following=obj
+            ).exists():
+                return True
         return False
 
     class Meta:

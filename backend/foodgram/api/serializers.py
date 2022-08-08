@@ -53,6 +53,20 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             )
         return recipe
 
+    def update(self, instance, validated_data):
+        ingredients_data = validated_data.pop('RecipeCount')
+        tags = validated_data.pop('tags')
+        instance = super().update(
+            instance, validated_data
+        )
+        instance.tags.set(tags)
+        CountIngredient.objects.filter(recipe=instance).delete()
+        for ingredient in ingredients_data:
+            CountIngredient.objects.get_or_create(
+                recipe=instance, **ingredient
+            )
+        return instance
+
 
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор Ингредиентов"""
@@ -76,17 +90,19 @@ class ListRecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField()
 
     def get_is_favorite(self, obj):
-        if Favorited.objects.filter(
-            user=self.context.get('request').user, favorite=obj
-        ).exists():
-            return True
+        if self.context.get('request').user.is_authenticated:
+            if Favorited.objects.filter(
+                user=self.context.get('request').user, favorite=obj
+            ).exists():
+                return True
         return False
 
     def get_is_in_shopping_cart(self, obj):
-        if ShoppingCart.objects.filter(
-            user=self.context.get('request').user, shopping_cart=obj
-        ).exists():
-            return True
+        if self.context.get('request').user.is_authenticated:
+            if ShoppingCart.objects.filter(
+                user=self.context.get('request').user, shopping_cart=obj
+            ).exists():
+                return True
         return False
 
     author = UserSerializer()

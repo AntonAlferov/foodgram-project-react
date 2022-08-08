@@ -14,11 +14,15 @@ class FilterRecipe(filters.FilterSet):
     tags = filters.AllValuesMultipleFilter(field_name='tags__slug')
 
     def is_favorited_filter(self, queryset, name, value):
-        if value == 1:
+        if value == 1 and self.request.user.is_authenticated:
             return queryset.filter(FavoritedIsRecipe__user=self.request.user)
-        return queryset.exclude(FavoritedIsRecipe__user=self.request.user)
+        if value == 0 and self.request.user.is_authenticated:
+            return queryset.exclude(FavoritedIsRecipe__user=self.request.user)
+        return queryset
 
     def is_in_shopping_cart_filter(self, queryset, name, value):
-        if value == 1:
+        if value == 1 and self.request.user.is_authenticated:
             return queryset.filter(ShoppingCartRecipe__user=self.request.user)
-        return queryset.exclude(ShoppingCartRecipe__user=self.request.user)
+        if value == 0 and self.request.user.is_authenticated:
+            return queryset.exclude(ShoppingCartRecipe__user=self.request.user)
+        return queryset

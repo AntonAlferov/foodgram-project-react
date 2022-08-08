@@ -23,7 +23,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     queryset = Recipe.objects.all()
     pagination_class = LimitOffsetPagination
-    permission_classes = (permissions.IsAuthenticated, WriteOnlyAuthorOr)
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        WriteOnlyAuthorOr
+    )
     filter_backends = (DjangoFilterBackend,)
     filterset_class = FilterRecipe
 
