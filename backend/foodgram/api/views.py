@@ -2,7 +2,7 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import (filters, mixins, permissions, serializers, status,
+from rest_framework import (filters, mixins, permissions, status,
                             viewsets)
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
@@ -16,6 +16,7 @@ from .serializers import (CreateRecipeSerializer, FavoritedRecipeSerializer,
                           FollowSerializer, IngredientSerializer,
                           ListRecipeSerializer, ShoppingCartRecipeSerializer,
                           TagsSerializer)
+from .mixins import DeleteFavoriteShoppingCartMixin
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -60,7 +61,7 @@ class TagsViewSet(viewsets.ModelViewSet):
 
 class FavoritedViewSet(
         mixins.CreateModelMixin,
-        mixins.DestroyModelMixin,
+        DeleteFavoriteShoppingCartMixin,
         viewsets.GenericViewSet
         ):
     """ModelViewSet для обработки эндпоинта /recipes/{recipe_id}/favorite/."""
@@ -69,24 +70,10 @@ class FavoritedViewSet(
     serializer_class = FavoritedRecipeSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    def delete(self, request, *args, **kwargs):
-        recipe_id = self.kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        if not Favorited.objects.filter(
-            user=request.user, is_favorited=recipe
-        ).exists():
-            raise serializers.ValidationError(
-                'Такого рецепта нет в вашем избранном'
-            )
-        Favorited.objects.filter(
-            user=request.user, is_favorited=recipe
-        ).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class ShoppingCartViewSet(
         mixins.CreateModelMixin,
-        mixins.DestroyModelMixin,
+        DeleteFavoriteShoppingCartMixin,
         viewsets.GenericViewSet
         ):
     """
@@ -96,20 +83,6 @@ class ShoppingCartViewSet(
     queryset = ShoppingCart.objects.all()
     serializer_class = ShoppingCartRecipeSerializer
     permission_classes = (permissions.IsAuthenticated,)
-
-    def delete(self, request, *args, **kwargs):
-        recipe_id = self.kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        if not ShoppingCart.objects.filter(
-            user=request.user, is_in_shopping_cart=recipe
-        ).exists():
-            raise serializers.ValidationError(
-                'Такого рецепта нет в вашей корзине'
-            )
-        ShoppingCart.objects.filter(
-            user=request.user, is_in_shopping_cart=recipe
-        ).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class APIDownloadShoppingCart(APIView):
@@ -151,8 +124,9 @@ class SubscribeViewSet(
         if not Follow.objects.filter(
             user_follower=request.user, author_following=user
         ).exists():
-            raise serializers.ValidationError(
-                'Такого пользователя нет в ваших подписках'
+            return Response(
+                {"errors": "Такого пользователя нет в ваших подписках"},
+                status=status.HTTP_400_BAD_REQUEST
             )
         Follow.objects.filter(
             user_follower=request.user, author_following=user

@@ -27,7 +27,6 @@ class User(AbstractUser):
         'Фамилия',
         max_length=150,
     )
-    is_subscribed = models.BooleanField('Подписка', default=False)
 
     class Meta:
         ordering = ['username']

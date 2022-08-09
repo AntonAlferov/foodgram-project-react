@@ -32,13 +32,13 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class FavoritedAdmin(admin.ModelAdmin):
-    list_display = ('user', 'favorite')
-    list_filter = ('user', 'favorite')
+    list_display = ('user', 'recipe')
+    list_filter = ('user', 'recipe')
 
 
 class ShoppingCartAdmin(admin.ModelAdmin):
-    list_display = ('user', 'shopping_cart')
-    list_filter = ('user', 'shopping_cart')
+    list_display = ('user', 'recipe')
+    list_filter = ('user', 'recipe')
 
 
 class UserAdmin(admin.ModelAdmin):

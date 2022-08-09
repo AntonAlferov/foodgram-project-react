@@ -44,7 +44,7 @@ class CountIngredient(models.Model):
         verbose_name='Ингредиенты',
     )
     amount = models.IntegerField(
-        'Количество',
+        'Количество', validators=[MinValueValidator(1), ]
     )
 
     class Meta:
@@ -141,7 +141,7 @@ class Favorited(models.Model):
         related_name='FavoritedUser',
         verbose_name='Имя пользователя'
     )
-    favorite = models.ForeignKey(
+    recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         related_name='FavoritedIsRecipe',
@@ -153,15 +153,15 @@ class Favorited(models.Model):
         verbose_name_plural = 'Избранное'
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'favorite'],
+                fields=['user', 'recipe'],
                 name='unique_user_favorite',
             ),
         ]
 
     def __str__(self) -> str:
         return (
-            f'"{self.favorite.name}"'
-            'в избранном у "{self.user.username}"'
+            f'"{self.recipe.name}"'
+            f'в избранном у "{self.user.username}"'
         )
 
 
@@ -172,7 +172,7 @@ class ShoppingCart(models.Model):
         related_name='ShoppingCartUser',
         verbose_name='Имя пользователя'
     )
-    shopping_cart = models.ForeignKey(
+    recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         related_name='ShoppingCartRecipe',
@@ -184,13 +184,13 @@ class ShoppingCart(models.Model):
         verbose_name_plural = 'Списки покупок'
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'shopping_cart'],
-                name='unique_user_shopping_cart',
+                fields=['user', 'recipe'],
+                name='unique_user_shoppingcart',
             ),
         ]
 
     def __str__(self) -> str:
         return (
-            f'"{self.is_in_shopping_cart.name}"'
-            'в корзине у "{self.user.username}"'
+            f'"{self.recipe.name}"'
+            f'в корзине у "{self.user.username}"'
         )

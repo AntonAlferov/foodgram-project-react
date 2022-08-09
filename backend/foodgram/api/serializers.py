@@ -4,9 +4,9 @@ from rest_framework import serializers
 
 from users.models import User
 from users.serializers import UserSerializer
-
 from .models import (CountIngredient, Favorited, Follow, Ingredient, Recipe,
                      ShoppingCart, Tag)
+from .utils import bulk_create_count_ingredient
 
 
 class CountIngredientSerializer(serializers.ModelSerializer):
@@ -47,10 +47,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             author=self.context.get('request').user, **validated_data
         )
         recipe.tags.set(tags)
-        for ingredient in ingredients_data:
-            CountIngredient.objects.get_or_create(
-                recipe=recipe, **ingredient
-            )
+        bulk_create_count_ingredient(recipe, ingredients_data)
         return recipe
 
     def update(self, instance, validated_data):
@@ -61,11 +58,24 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         )
         instance.tags.set(tags)
         CountIngredient.objects.filter(recipe=instance).delete()
-        for ingredient in ingredients_data:
-            CountIngredient.objects.get_or_create(
-                recipe=instance, **ingredient
-            )
+        bulk_create_count_ingredient(instance, ingredients_data)
         return instance
+
+    def validate(self, data):
+        ingredients = data['RecipeCount']
+        tags = data['tags']
+        if len(set(tags)) != len(tags):
+            raise serializers.ValidationError(
+                'Указанные теги повторяются'
+            )
+        ingredients_id_list = []
+        for ingredient in ingredients:
+            ingredients_id_list.append(ingredient['ingredient_id'])
+        if len(set(ingredients_id_list)) != len(ingredients_id_list):
+            raise serializers.ValidationError(
+                'Указанные ингредиенты повторяются'
+            )
+        return data
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -91,18 +101,16 @@ class ListRecipeSerializer(serializers.ModelSerializer):
 
     def get_is_favorite(self, obj):
         if self.context.get('request').user.is_authenticated:
-            if Favorited.objects.filter(
-                user=self.context.get('request').user, favorite=obj
-            ).exists():
-                return True
+            return Favorited.objects.filter(
+                user=self.context.get('request').user, recipe=obj
+            ).exists()
         return False
 
     def get_is_in_shopping_cart(self, obj):
         if self.context.get('request').user.is_authenticated:
-            if ShoppingCart.objects.filter(
-                user=self.context.get('request').user, shopping_cart=obj
-            ).exists():
-                return True
+            return ShoppingCart.objects.filter(
+                user=self.context.get('request').user, recipe=obj
+            ).exists()
         return False
 
     author = UserSerializer()
@@ -131,16 +139,21 @@ class FavoritedRecipeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         favorite = self.context['view'].kwargs.get('recipe_id')
         recipe = get_object_or_404(Recipe, id=favorite)
+        Favorited.objects.create(
+            user=self.context.get('request').user, recipe=recipe
+        )
+        return recipe
+
+    def validate(self, data):
+        favorite = self.context['view'].kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=favorite)
         if Favorited.objects.filter(
-            user=self.context.get('request').user, favorite=recipe
+            user=self.context.get('request').user, recipe=recipe
         ).exists():
             raise serializers.ValidationError(
                 'Рецепт уже есть в избранном'
             )
-        Favorited.objects.create(
-            user=self.context.get('request').user, favorite=recipe
-        )
-        return recipe
+        return data
 
 
 class ShoppingCartRecipeSerializer(serializers.ModelSerializer):
@@ -152,18 +165,23 @@ class ShoppingCartRecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'name', 'cooking_time']
 
     def create(self, validated_data):
-        shopping_cart = self.context['view'].kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=shopping_cart)
+        recipe = self.context['view'].kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe)
+        ShoppingCart.objects.create(
+            user=self.context.get('request').user, recipe=recipe
+        )
+        return recipe
+
+    def validate(self, data):
+        recipe = self.context['view'].kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe)
         if ShoppingCart.objects.filter(
-            user=self.context.get('request').user, shopping_cart=recipe
+            user=self.context.get('request').user, recipe=recipe
         ).exists():
             raise serializers.ValidationError(
                 'Рецепт уже есть в корзине'
             )
-        ShoppingCart.objects.create(
-            user=self.context.get('request').user, shopping_cart=recipe
-        )
-        return recipe
+        return data
 
 
 class FollowSerializer(serializers.ModelSerializer):
@@ -179,12 +197,10 @@ class FollowSerializer(serializers.ModelSerializer):
         return obj.recipe.count()
 
     def get_is_subscribed(self, obj):
-        if Follow.objects.filter(
+        return Follow.objects.filter(
             user_follower=self.context.get('request').user,
             author_following=obj
-        ).exists():
-            return True
-        return False
+        ).exists()
 
     class Meta:
         model = User
@@ -200,6 +216,15 @@ class FollowSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         author_following = self.context['view'].kwargs.get('user_id')
         author_following = get_object_or_404(User, id=author_following)
+        Follow.objects.create(
+            user_follower=self.context.get('request').user,
+            author_following=author_following
+        )
+        return author_following
+
+    def validate(self, data):
+        author_following = self.context['view'].kwargs.get('user_id')
+        author_following = get_object_or_404(User, id=author_following)
         if Follow.objects.filter(
             user_follower=self.context.get('request').user,
             author_following=author_following
@@ -207,8 +232,4 @@ class FollowSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Пользователь уже есть в подписках'
             )
-        Follow.objects.create(
-            user_follower=self.context.get('request').user,
-            author_following=author_following
-        )
-        return author_following
+        return data

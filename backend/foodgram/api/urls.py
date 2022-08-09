@@ -1,7 +1,6 @@
 from django.urls import include, path
 
 from users.views import APIDeleteToken, APIToken
-
 from .routers import router
 from .views import APIDownloadShoppingCart, APISubscriptionsUser
 
