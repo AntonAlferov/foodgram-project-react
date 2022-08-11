@@ -7,6 +7,11 @@ from .models import User
 class UserMeSerializer(serializers.ModelSerializer):
     """Сериализатор  текущего пользователя. """
 
+    is_subscribed = serializers.SerializerMethodField()
+
+    def get_is_subscribed(self, obj):
+        return False
+
     class Meta:
         model = User
         fields = (
@@ -33,28 +38,10 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'username',
+            'email', 'id', 'username',
             'first_name', 'last_name',
             'password', 'is_subscribed'
         )
-
-    def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = super().create(validated_data)
-        user.set_password(password)
-        user.save()
-        return user
-
-
-class ObtainTokenSerializer(serializers.ModelSerializer):
-    """Сериализатор для получения токена. """
-
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField()
-
-    class Meta:
-        model = User
-        fields = ('email', 'password')
 
 
 class NewPasswordSerializer(serializers.ModelSerializer):
@@ -66,3 +53,10 @@ class NewPasswordSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('new_password', 'current_password')
+
+    def validate_current_password(self, value):
+        if self.context.get('request').user.check_password(value):
+            return value
+        raise serializers.ValidationError(
+                'Старый пароль не подтвержден'
+            )

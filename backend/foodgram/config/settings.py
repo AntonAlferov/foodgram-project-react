@@ -1,13 +1,12 @@
-import datetime
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 INSTALLED_APPS = [
@@ -21,6 +20,8 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'django_filters',
+    'rest_framework.authtoken',
+    'djoser'
 ]
 
 MIDDLEWARE = [
@@ -41,25 +42,33 @@ REST_FRAMEWORK = {
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
 }
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+    'USER_ID_FIELD': 'id',
+    'HIDE_USERS': False,
+    'PERMISSIONS': {
+        'user': ['rest_framework.permissions.IsAuthenticated'],
+        'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+    },
+    'SERIALIZERS': {
+        'user': 'users.serializers.UserSerializer',
+        'user_create': 'djoser.serializers.UserCreateSerializer',
+        'current_user': 'users.serializers.UserMeSerializer',
+        'set_password': 'users.serializers.NewPasswordSerializer',
+        'token': 'djoser.serializers.TokenSerializer',
+    },
 }
 
 ROOT_URLCONF = 'config.urls'
 
-TEMPLATES_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.join(BASE_DIR, 'docs'))))
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [TEMPLATES_DIR],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -109,9 +118,9 @@ USE_I18N = True
 USE_TZ = True
 
 
-STATIC_URL = '/static/'
+STATIC_URL = '/backend_static/'
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'backend_static')
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/backend_media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'backend_media')
