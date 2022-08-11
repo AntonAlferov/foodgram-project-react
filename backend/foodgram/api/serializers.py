@@ -82,7 +82,7 @@ class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор Ингредиентов"""
     class Meta:
         model = Ingredient
-        fields = ('name', 'measurement_unit')
+        fields = ('id', 'name', 'measurement_unit')
 
 
 class TagsSerializer(serializers.ModelSerializer):
@@ -96,10 +96,10 @@ class TagsSerializer(serializers.ModelSerializer):
 class ListRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор Рецептов при просмотре"""
 
-    is_favorite = serializers.SerializerMethodField()
+    is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
-    def get_is_favorite(self, obj):
+    def get_is_favorited(self, obj):
         if self.context.get('request').user.is_authenticated:
             return Favorited.objects.filter(
                 user=self.context.get('request').user, recipe=obj
@@ -122,7 +122,7 @@ class ListRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'tags', 'author', 'ingredients', 'name', 'is_favorite',
+            'id', 'tags', 'author', 'ingredients', 'name', 'is_favorited',
             'is_in_shopping_cart', 'image', 'text', 'cooking_time'
         )
         read_only_fields = ['author', ]
@@ -133,8 +133,8 @@ class FavoritedRecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'name', 'cooking_time')
-        read_only_fields = ['id', 'name', 'cooking_time']
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ['id', 'name', 'image', 'cooking_time']
 
     def create(self, validated_data):
         favorite = self.context['view'].kwargs.get('recipe_id')
@@ -161,8 +161,8 @@ class ShoppingCartRecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'name', 'cooking_time')
-        read_only_fields = ['id', 'name', 'cooking_time']
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ['id', 'name', 'image', 'cooking_time']
 
     def create(self, validated_data):
         recipe = self.context['view'].kwargs.get('recipe_id')
@@ -184,10 +184,19 @@ class ShoppingCartRecipeSerializer(serializers.ModelSerializer):
         return data
 
 
+class RecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор просмотра рецепта в подписках"""
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ['id', 'name', 'image', 'cooking_time']
+
+
 class FollowSerializer(serializers.ModelSerializer):
     """Сериализатор добавления пользователя в подписки"""
 
-    recipes = ShoppingCartRecipeSerializer(
+    recipes = RecipeSerializer(
         source='recipe', many=True, read_only=True
     )
     is_subscribed = serializers.SerializerMethodField()

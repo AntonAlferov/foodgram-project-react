@@ -26,3 +26,13 @@ class FilterRecipe(filters.FilterSet):
         if value == 0 and self.request.user.is_authenticated:
             return queryset.exclude(ShoppingCartRecipe__user=self.request.user)
         return queryset
+
+
+class IngredientFilter(filters.FilterSet):
+    name = filters.CharFilter(
+        method='ingredient_filter',
+        label="Поиск по ингредиентам"
+    )
+
+    def ingredient_filter(self, queryset, name, value):
+        return queryset.filter(name__startswith=value)

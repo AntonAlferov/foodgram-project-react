@@ -2,13 +2,13 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import (filters, mixins, permissions, status,
+from rest_framework import (mixins, permissions, status,
                             viewsets)
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .filters import FilterRecipe
+from .filters import FilterRecipe, IngredientFilter
 from .permissions import WriteOnlyAuthorOr
 from .models import (CountIngredient, Favorited, Follow, Ingredient, Recipe,
                      ShoppingCart, Tag, User)
@@ -17,13 +17,13 @@ from .serializers import (CreateRecipeSerializer, FavoritedRecipeSerializer,
                           ListRecipeSerializer, ShoppingCartRecipeSerializer,
                           TagsSerializer)
 from .mixins import DeleteFavoriteShoppingCartMixin
-
+from .utils import RecipePagination
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """ModelViewSet для обработки эндпоинта /recipes/."""
 
     queryset = Recipe.objects.all()
-    pagination_class = LimitOffsetPagination
+    pagination_class = RecipePagination
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
         WriteOnlyAuthorOr
@@ -42,10 +42,9 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    pagination_class = LimitOffsetPagination
     permission_classes = (permissions.AllowAny,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ['name']
+    filter_backends = (DjangoFilterBackend, )
+    filterset_class = IngredientFilter
 
 
 class TagsViewSet(viewsets.ModelViewSet):
@@ -53,10 +52,7 @@ class TagsViewSet(viewsets.ModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = TagsSerializer
-    pagination_class = LimitOffsetPagination
-    permission_classes = (permissions.IsAuthenticated,)
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
+    permission_classes = (permissions.AllowAny,)
 
 
 class FavoritedViewSet(
@@ -139,6 +135,7 @@ class APISubscriptionsUser(viewsets.ModelViewSet):
 
     serializer_class = FollowSerializer
     permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = LimitOffsetPagination
 
     def get_queryset(self):
         new_queryset = User.objects.filter(
