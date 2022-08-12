@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import (mixins, permissions, status,
                             viewsets)
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -18,6 +17,7 @@ from .serializers import (CreateRecipeSerializer, FavoritedRecipeSerializer,
                           TagsSerializer)
 from .mixins import DeleteFavoriteShoppingCartMixin
 from .utils import RecipePagination
+
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """ModelViewSet для обработки эндпоинта /recipes/."""
@@ -135,7 +135,7 @@ class APISubscriptionsUser(viewsets.ModelViewSet):
 
     serializer_class = FollowSerializer
     permission_classes = (permissions.IsAuthenticated,)
-    pagination_class = LimitOffsetPagination
+    pagination_class = RecipePagination
 
     def get_queryset(self):
         new_queryset = User.objects.filter(

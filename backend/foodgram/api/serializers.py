@@ -184,11 +184,23 @@ class ShoppingCartRecipeSerializer(serializers.ModelSerializer):
         return data
 
 
+class RecipesLimitSerializer(serializers.ListSerializer):
+    """Сериализатор """
+
+    def to_representation(self, data):
+        recipes_limit = self.context['request'].query_params.get(
+            'recipes_limit'
+        )
+        data = data.all()[:int(recipes_limit)]
+        return super().to_representation(data)
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор просмотра рецепта в подписках"""
 
     class Meta:
         model = Recipe
+        list_serializer_class = RecipesLimitSerializer
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = ['id', 'name', 'image', 'cooking_time']
 
