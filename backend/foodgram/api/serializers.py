@@ -185,7 +185,7 @@ class ShoppingCartRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipesLimitSerializer(serializers.ListSerializer):
-    """Сериализатор """
+    """Сериализатор ограничения выдачи рецептов"""
 
     def to_representation(self, data):
         recipes_limit = self.context['request'].query_params.get(
