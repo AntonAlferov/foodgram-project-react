@@ -1,4 +1,5 @@
 сайт доступен по адресу http://foodgram.myftp.org
+логин и пароль от админки admin
 
 #Учебный проект Продктовый Помощник
 
@@ -45,7 +46,7 @@ docker-compose exec backend python manage.py createsuperuser
 Ознакомиться с пользовательскими командами апи можно по ссылке localhost\redoc\
 
 Загрузить тестовые данные можно предварительно скопируя их в контейнер:
-docker-compose exec web python manage.py loaddata fixtures.json
+docker-compose exec backend python manage.py loaddata fixtures.json
 
 Остановить сервисы можно командой:
 docker-compose stop
