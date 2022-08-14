@@ -191,7 +191,8 @@ class RecipesLimitSerializer(serializers.ListSerializer):
         recipes_limit = self.context['request'].query_params.get(
             'recipes_limit'
         )
-        data = data.all()[:int(recipes_limit)]
+        if recipes_limit:
+            data = data.all()[:int(recipes_limit)]
         return super().to_representation(data)
 
 
