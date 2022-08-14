@@ -1,0 +1,9 @@
+name: Django-app workflow
+on: [push]
+jobs:
+  build_container:
+      name: Push Docker image to Docker Hub
+      runs-on: ubuntu-latest
+      steps:
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v1 
